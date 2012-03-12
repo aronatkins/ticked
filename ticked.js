@@ -107,11 +107,16 @@ var udp_receiver = dgram.createSocket('udp4', function(msg,rinfo) {
     // format: pubid:value
 
     var parts = msg.toString().split(':');
-    var pub_id = parts.shift();
-    // sometimes we get undefined shifting off here.
-    var value  = parts.shift().replace(/[^a-zA-Z_\-0-9\.]/g, '');
 
-    record(pub_id, value);
+    if (parts.length === 2) {
+        var pub_id = parts.shift();
+        // sometimes we get undefined shifting off here.
+        var value  = parts.shift().replace(/[^a-zA-Z_\-0-9\.]/g, '');
+
+        record(pub_id, value);
+    } else {
+        util.log("bad udp message:"+msg);
+    }
 });
 
 // Create the HTTP server for the clients.
