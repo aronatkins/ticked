@@ -19,7 +19,7 @@ var config = {
     server_http_address  : undefined,
     server_http_port     : 8080,
 
-    push_interval : 1000,
+    push_interval : 1000
 };
 // end config.
 
