@@ -40,7 +40,9 @@
   var animate = false;
   var animate_bg = true;
   var animate_ms = 500;
-  var animate_easing = "ease-in";"<>";
+  var animate_easing = "ease-in";//"<>";
+  var line_fn = "L"; // L, R, etc.
+  var trippy_colors = false;
   var r = Raphael('graph', w, h);
   var c  = r.path("M0,0").attr({fill: "none", "stroke-width": 4, "stroke-linecap": "round"});
   var bg = r.path("M0,0").attr({stroke: "none", opacity: .3});
@@ -54,11 +56,14 @@
   var hmin = Infinity;
 
   socket.on('ticked', function (data) {
-    // var clr = Raphael.getColor(1); // trippy.
+    if (trippy_colors) {
+        clr = Raphael.getColor(1); // trippy.
+        // not quite right yet. need to reset occasionally?
+    }
 
     // the last data member isn't final yet, so throw it away.
     // maybe not a great choice when the bucket spans a long time.
-    // data.pop();
+    data.pop();
 
     var values = [];
     for (var i = 0; i < data.length; i++) {
@@ -88,7 +93,9 @@
         if (i) {
             path += ", " + [x,y];
         } else {
-            path += "M" + [x,y] + "L";
+            // move to x0y0; the remainder of the points 
+            // are coordinates for our line function.
+            path += "M" + [x,y] + line_fn;
         }
     }
 
