@@ -4,28 +4,152 @@
 
 <head>
   <script src="/socket.io/socket.io.js"></script>
+  <script src="https://raw.github.com/DmitryBaranovskiy/raphael/master/raphael-min.js"></script>
+
   <script>
     WEB_SOCKET_SWF_LOCATION = '/socket.io/WebSocketMain.swf';
   </script>
   <title>ticker</title>
+  <style>
+    #buckets div { width: 150px; float: left; }
+  </style>
 </head>
 <body>
 
-<div id="ticker">
-</ticker>
+<div id="graph" style="border:1px solid black;"></div>
+
+<div id="buckets">
+<div id="b0"></div>
+<div id="b1"></div>
+<div id="b2"></div>
+<div id="b3"></div>
+<div id="b4"></div>
+<div id="b5"></div>
+<div id="b6"></div>
+<div id="b7"></div>
+<div id="b8"></div>
+<div id="b9"></div>
+</div>
+
+<div id="ticked">
+</div>
 
 <script>
-  var socket = io.connect('http://localhost:8080/');
-  socket.on('ticker', function (data) {
+  var w = 900;
+  var h = 300;
+  var animate = false;
+  var animate_bg = true;
+  var animate_ms = 500;
+  var animate_easing = "ease-in";"<>";
+  var r = Raphael('graph', w, h);
+  var c  = r.path("M0,0").attr({fill: "none", "stroke-width": 4, "stroke-linecap": "round"});
+  var bg = r.path("M0,0").attr({stroke: "none", opacity: .3});
+  var clr = Raphael.getColor(1);
+
+  var ticked = document.getElementById('ticked');
+  var socket = io.connect('/');
+  var first = true;
+
+  var hmax = 0;
+  var hmin = Infinity;
+
+  socket.on('ticked', function (data) {
+    // var clr = Raphael.getColor(1); // trippy.
+
+    // the last data member isn't final yet, so throw it away.
+    // maybe not a great choice when the bucket spans a long time.
+    // data.pop();
+
+    var values = [];
+    for (var i = 0; i < data.length; i++) {
+        var sum = 0;
+        for (var a in data[i].data) {
+            for (var b in data[i].data[a]) {
+                sum += data[i].data[a][b];
+            }
+        }
+        values.push(sum);
+    }
+
+    var max = hmax = Math.max(hmax,values.reduce(function(prev,cur,i,a) { return Math.max(prev,cur); }, 0));
+    var min = hmin = Math.min(hmin,values.reduce(function(prev,cur,i,a) { return Math.min(prev,cur); }, Infinity));
+    var range = max - min; // div0?
+    //var min = 0;
+    //var range = max;
+
+    var path = "";
+    for (var i = 0; i < values.length; i++) {
+        var x = Math.round(((w+1) / (values.length-1)) * i);
+        var y = Math.round((h / (range-1)) * (values[i] - min));
+
+        x = Math.max(0, Math.min(w,x));
+        y = h - Math.max(0, Math.min(h,y));
+
+        if (i) {
+            path += ", " + [x,y];
+        } else {
+            path += "M" + [x,y] + "L";
+        }
+    }
+
+    if (first || ! animate) {
+        c.attr({path: path, stroke: clr});
+        bg.attr({path: path + "L"+w+","+h+" 0,"+h+"z", fill: clr});
+        first = false;
+    } else {
+        var anim = Raphael.animation({path: path, stroke: clr}, animate_ms, animate_easing);
+        c.animate(anim);
+        // kinda cool if we don't animate the bg.
+        if (animate_bg) {
+            bg.animateWith(c, anim, {path: path + "L"+w+","+h+" 0,"+h+"z", fill: clr}, animate_ms, animate_easing);
+        } else {
+            bg.attr({path: path + "L"+w+","+h+" 0,"+h+"z", fill: clr});
+        }
+    }
+
+    var buckets = [];
+    for (var i = 0; i < 6; i++) {
+        buckets.push({});
+    }
+    // collapse N buckets into M.
+    var data_per_bucket = data.length / buckets.length;
+    for (var i = 0; i < data.length; i++) {
+        var idx = Math.floor(i / data_per_bucket);
+        var bkt = buckets[idx];
+        var d_i = data[i].data;
+        for (var a in d_i) {
+            var sub_d = d_i[a];
+            var sub_b = bkt[a] || {};
+            for (var b in sub_d) {
+                sub_b[b] = (sub_b[b] || 0) + sub_d[b];
+            }
+            bkt[a] = sub_b;
+        }
+        buckets[idx] = bkt;
+    }
+    // concat sub-names.
+    buckets = buckets.map(function(each) {
+        var d = [];
+        for (var a in each) {
+            for (var b in each[a]) {
+                d.push([a+":"+b,each[a][b]])
+            }
+        }
+        return d.sort(function(a,b){return b[1]-a[1];}).join("<br/>");
+    });
+    for (var i = 0; i < 6; i++) {
+        document.getElementById("b"+i).innerHTML = buckets[i];
+    }
+/*
     for (var i = 0 ; i < data.length; i++) {
         var bucket = data[i];
         var date = new Date(bucket.ts);
 
-        var ticker = document.getElementById('ticker');
-        ticker.appendChild(document.createTextNode(date.toString() + ": " + JSON.stringify(bucket.data)));
-        ticker.appendChild(document.createElement('hr'));
+        ticked.appendChild(document.createTextNode(date.toString() + ": " + JSON.stringify(bucket.data)));
+        ticked.appendChild(document.createElement('hr'));
     }
-    console.log(data);
+*/
+    // console.log(data);
   });
 </script>
 
