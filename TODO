@@ -1,0 +1,8 @@
+On a timer, flush the buckets to mongo.
+
+When we shift something off the buckets list, flush to mongo.
+
+Maybe do bucket-list trimming on a timer and not on the request path.
+
+On some schedule, reduce all the per-minute data to per-hour, per-day,
+per-week. Maybe do cleanup of the per-minute metrics, too.

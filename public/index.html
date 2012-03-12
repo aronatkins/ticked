@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+  "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+
+<head>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    WEB_SOCKET_SWF_LOCATION = '/socket.io/WebSocketMain.swf';
+  </script>
+  <title>ticker</title>
+</head>
+<body>
+
+<div id="ticker">
+</ticker>
+
+<script>
+  var socket = io.connect('http://localhost:8080/');
+  socket.on('ticker', function (data) {
+    for (var i = 0 ; i < data.length; i++) {
+        var bucket = data[i];
+        var date = new Date(bucket.ts);
+
+        var ticker = document.getElementById('ticker');
+        ticker.appendChild(document.createTextNode(date.toString() + ": " + JSON.stringify(bucket.data)));
+        ticker.appendChild(document.createElement('hr'));
+    }
+    console.log(data);
+  });
+</script>
+
+</body>
