@@ -4,8 +4,8 @@
 
 <head>
   <script src="/socket.io/socket.io.js"></script>
-  <script src="https://raw.github.com/DmitryBaranovskiy/raphael/master/raphael-min.js"></script>
-
+  <script src="/jquery-1.10.2.min.js"></script>
+  <script src="/raphael-2.1.0.min.js"></script>
   <script>
     WEB_SOCKET_SWF_LOCATION = '/socket.io/WebSocketMain.swf';
   </script>
@@ -35,7 +35,7 @@
 </div>
 
 <script>
-  var w = 900;
+  var w = $(window).width() - 18; // why 18?;
   var h = 300;
   var animate = false;
   var animate_bg = true;

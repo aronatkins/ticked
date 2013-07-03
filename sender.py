@@ -10,7 +10,7 @@ b = [ 'alpha', 'bravo', 'charley', 'delta' ]
 udp_ip="127.0.0.1"
 udp_port=8025
 
-sleep_range = range(0,250)
+sleep_range = range(0,100)
 sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
 try :
     while True :

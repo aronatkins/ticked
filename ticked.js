@@ -3,6 +3,7 @@ var http  = require('http');
 var url   = require('url');
 var util  = require('util');
 var sio   = require('socket.io');
+var node_static = require('node-static');
 var fs = require('fs');
 
 // begin config.
@@ -19,7 +20,10 @@ var config = {
     server_http_address  : undefined,
     server_http_port     : 8080,
 
-    push_interval : 1000
+    push_interval : 1000,
+
+    doc_root : __dirname + '/public',
+    doc_cache : 0
 };
 // end config.
 
@@ -100,7 +104,7 @@ var http_receiver = http.createServer(function (request, response) {
     response.end('OK\n');
 });
 
-// TBD: create a UDP receiver.
+// Create a UDP receiver.
 var udp_receiver = dgram.createSocket('udp4', function(msg,rinfo) {
     if (config.debug_udp) { util.log(msg.toString()); }
 
@@ -119,16 +123,12 @@ var udp_receiver = dgram.createSocket('udp4', function(msg,rinfo) {
     }
 });
 
+var file = new(node_static.Server)(config.doc_root, { cache: config.doc_cache || 0 });
 // Create the HTTP server for the clients.
 var server = http.createServer(function (request, response) {
-    var index = fs.readFileSync(__dirname + '/public/index.html');
-
-    response.writeHead(200, {'Content-Type' : 'text/html'});
-    response.end(index);
-
-    //response.writeHead(200, {'Content-Type': 'application/json'});
-    //response.write(JSON.stringify(buckets));
-    //response.end("\n");
+                                   request.addListener('end', function() {
+                                                           file.serve(request,response);
+                                                       }).resume();
 });
 
 http_receiver.listen(config.receiver_http_port || 8020, 
