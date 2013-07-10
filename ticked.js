@@ -10,6 +10,7 @@ var fs = require('fs');
 var config = {
     buckets : 60,
     bucket_interval : 1000,
+    bucket_check_interval : 250,
 
     receiver_http_address : undefined,
     receiver_http_port    : 8020,
@@ -23,15 +24,43 @@ var config = {
     push_interval : 1000,
 
     doc_root : __dirname + '/public',
-    doc_cache : 0
+    doc_cache : 0,
+
+    log_level : 'info'
 };
 // end config.
 
 // todo: our own stats.
 
+function logger() {
+    var log = function() {};
+    log.level = 'info';
+    log.levels = ['trace','debug','info','warn','error'];
+    log.log = function(level, message) {
+        if (log.levels.indexOf(level) >= log.levels.indexOf(log.level)) {
+            if (typeof message !== 'string') {
+                message = JSON.stringify(message);
+            };
+            util.log(level+': '+message);
+        }
+    };
+    // TODO: code generate these.
+    // TODO: use numeric levels where possible.
+    log.error = function(message) { log.log('error',message); };
+    log.warn = function(message) { log.log('warn',message); };
+    log.info = function(message) { log.log('info',message); };
+    log.debug = function(message) { log.log('debug',message); };
+    log.trace = function(message) { log.log('trace',message); };
+    return log;    
+}
+
+var log = logger();
+log.level = config.log_level || 'info';
+
 buckets = [];
 
 function create_bucket(ts) {
+    log.trace("creating bucket:"+ts);
     var bucket = {};
     bucket.ts = ts;
     bucket.data = {};
@@ -39,13 +68,24 @@ function create_bucket(ts) {
 }
 
 function add_to_bucket(bucket, p, v) {
-    pub = bucket.data[p] || {};
+    var pub = bucket.data[p] || {};
     bucket.data[p] = pub;
 
     pub[v] = (pub[v] || 0) + 1;
 }
 
+function norm_ts(ts) {
+    // ms since epoch w 60s step.    
+    var bucket_ts = Math.floor(ts / config.bucket_interval) * config.bucket_interval;
+
+    log.trace("ts:"+ts+":"+bucket_ts);
+    return bucket_ts;
+}
+
 function get_bucket(ts) {
+    ts = norm_ts(ts);
+
+    log.trace("fetching bucket:"+ts);
     var bucket = null;
     if (buckets.length == 0) {
 	// no buckets. just create one and move on.
@@ -78,27 +118,29 @@ function get_bucket(ts) {
 	    buckets.shift();
 	}
     }
+    log.trace("returning bucket:"+bucket);
     return bucket;
 }
 
-function record(pub_id, value) {
+function get_bucket_now() {
     var date = new Date();
     var ts = date.getTime(); // ms since epoch.
+    var bucket = get_bucket(ts);
+}
 
-    // ms since epoch w 60s step.    
-    var norm_ts = Math.floor(ts / config.bucket_interval) * config.bucket_interval;
-
-    var bucket = get_bucket(norm_ts);
+function record(ts, pub_id, value) {
+    var bucket = get_bucket(ts);
     add_to_bucket(bucket, pub_id, value);
 }
 
 // create the HTTP receiver.
 var http_receiver = http.createServer(function (request, response) {
     var request_url = url.parse(request.url,true);
+    var ts = request_url.query.t;
     var pub_id = request_url.query.p;
     var value  = request_url.query.v;
 
-    record(pub_id, value);
+    record(ts, pub_id, value);
 
     response.writeHead(200, {'Content-Type': 'text/plain'});
     response.end('OK\n');
@@ -106,20 +148,19 @@ var http_receiver = http.createServer(function (request, response) {
 
 // Create a UDP receiver.
 var udp_receiver = dgram.createSocket('udp4', function(msg,rinfo) {
-    if (config.debug_udp) { util.log(msg.toString()); }
-
-    // format: pubid:value
+    log.debug('received udp message:'+msg.toString());
 
     var parts = msg.toString().split(':');
 
-    if (parts.length === 2) {
+    if (parts.length === 3) {
+        var ts = Number(parts.shift());
         var pub_id = parts.shift();
         // sometimes we get undefined shifting off here.
         var value  = parts.shift().replace(/[^a-zA-Z_\-0-9\.]/g, '');
 
-        record(pub_id, value);
+        record(ts, pub_id, value);
     } else {
-        util.log("bad udp message:"+msg);
+        log.error("bad udp message:"+msg);
     }
 });
 
@@ -152,4 +193,8 @@ var push_interval = setInterval(function () {
     io.sockets.volatile.emit("ticked", buckets);
 }, config.push_interval || 10000);
 
-util.log("ready to tick... you off.");
+// make sure we have buckets even if there's no data arriving.
+get_bucket_now();
+setInterval(get_bucket_now, config.bucket_check_interval || 250);
+
+log.info("ready to tick... you off.");
