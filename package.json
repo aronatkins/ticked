@@ -1,0 +1,27 @@
+{
+	"name" : "ticked",
+	"version" : "0.0.1",
+	"author" : {
+		"name" : "Aron Atkins",
+		"email" : "aron@gweep.net"
+	},
+	"contributors" : [
+		{
+			"name" : "Josh Spiewak",
+			"email" : "jspiewak@gmail.com"
+		}
+	],
+	"bugs" : {
+		"url" : "https://github.com/aronatkins/ticked/issues"
+	},
+	"dependencies" : {
+		"socket.io" : ">= 0.9.16",
+		"node-static" : ">= 0.7.0"
+	},
+	"repository" : {
+		"type" : "git",
+		"url" : "https://github.com/aronatkins/ticked"
+	},
+	"scripts": {"start": "node ticked.js"},
+	"private" : true
+}
