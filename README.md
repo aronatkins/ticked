@@ -31,9 +31,6 @@ Getting Started
 	    # Inside the ticked directory; installing locally
         npm install
 
-        (cd public && curl -O http://code.jquery.com/jquery-1.10.2.min.js)
-        (cd public && curl -o raphael-2.1.0.min.js https://raw.github.com/DmitryBaranovskiy/raphael/v2.1.0/raphael-min.js)
-
 4. start the ticked server.
 
         node ticked.js
