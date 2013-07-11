@@ -14,7 +14,12 @@ sleep_range = range(0,100)
 sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
 try :
     while True :
-        m = '%d:%s:%s' % (int(time.time() * 1000),random.choice(a), random.choice(b))
+    	ts = int(time.time() * 1000)
+    	k1 = random.choice(a)
+    	k2 = random.choice(b)
+    	c = random.randint(1,1000000)
+    	d = random.randint(1,100)
+        m = '%d:%s:%s:%d:%d' % (ts,k1,k2,c,d)
         sock.sendto( m, (udp_ip, udp_port) )
         time.sleep(random.choice(sleep_range) / 1000.0)
 finally :

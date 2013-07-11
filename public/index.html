@@ -13,7 +13,8 @@
 </head>
 <body>
 
-<div id="graph" style="border:1px solid black;"></div>
+<div id="counts_graph" style="border:1px solid black;"></div>
+<div id="durations_graph" style="border:1px solid black;"></div>
 
 <div id="buckets">
 <div id="b0"></div>
@@ -33,44 +34,31 @@
 
 <script>
   var w = $(window).width() - 18; // why 18?;
-  var h = 300;
+  var h = 100;
   var animate = false;
   var animate_bg = true;
   var animate_ms = 500;
   var animate_easing = "ease-in";//"<>";
   var line_fn = "L"; // L, R, etc.
   var trippy_colors = false;
-  var r = Raphael('graph', w, h);
-  var c  = r.path("M0,0").attr({fill: "none", "stroke-width": 4, "stroke-linecap": "round"});
-  var bg = r.path("M0,0").attr({stroke: "none", opacity: .3});
-  var clr = Raphael.getColor(1);
 
   var ticked = document.getElementById('ticked');
   var socket = io.connect('/');
   var first = true;
 
-  var hmax = 0;
-  var hmin = Infinity;
+  function Graph(div,w,h) {
+    var r = Raphael(div,w,h);
+    var c  = r.path("M0,0").attr({fill: "none", "stroke-width": 4, "stroke-linecap": "round"});
+    var bg = r.path("M0,0").attr({stroke: "none", opacity: .3});
+    var clr = Raphael.getColor(1);
 
-  socket.on('ticked', function (data) {
+    var hmax = 0;
+    var hmin = Infinity;
+
+  function render(values) {
     if (trippy_colors) {
         clr = Raphael.getColor(1); // trippy.
         // not quite right yet. need to reset occasionally?
-    }
-
-    // the last data member isn't final yet, so throw it away.
-    // maybe not a great choice when the bucket spans a long time.
-    data.pop();
-
-    var values = [];
-    for (var i = 0; i < data.length; i++) {
-        var sum = 0;
-        for (var a in data[i].data) {
-            for (var b in data[i].data[a]) {
-                sum += data[i].data[a][b];
-            }
-        }
-        values.push(sum);
     }
 
     var max = hmax = Math.max(hmax,values.reduce(function(prev,cur,i,a) { return Math.max(prev,cur); }, 0));
@@ -110,50 +98,87 @@
             bg.attr({path: path + "L"+w+","+h+" 0,"+h+"z", fill: clr});
         }
     }
+  }
+  return render;
+}
+  var render_counts_graph = Graph('counts_graph', w, h);
+  var render_durations_graph = Graph('durations_graph', w, h);
 
-    var buckets = [];
+  socket.on('ticked', function (buckets) {
+    // the last bucket isn't final yet, so throw it away.
+    // maybe not a great choice when the bucket spans a long time.
+    buckets.pop();
+
+    // flatten all { count:c, duration:d } measurements within a 
+    // single bucket.
+    var aggregated = [];
+    for (var i = 0; i < buckets.length; i++) {
+        var one_ts = { count:0, duration:0 };
+        for (var k in buckets[i].data) {
+            var one_k = buckets[i].data[k];
+            one_ts.count += (one_k.count || 0);
+            one_ts.duration += (one_k.duration || 0);
+        }
+        aggregated.push(one_ts);
+    }
+
+    var counts = aggregated.map(function(d) { return d.count; });
+    var durations = aggregated.map(function(d) { return d.duration; });
+
+    render_counts_graph(counts);
+    render_durations_graph(durations);
+
+    var columns = [];
     for (var i = 0; i < 6; i++) {
-        buckets.push({});
+        columns.push({});
     }
     // collapse N buckets into M.
-    var data_per_bucket = data.length / buckets.length;
-    for (var i = 0; i < data.length; i++) {
-        var idx = Math.floor(i / data_per_bucket);
-        var bkt = buckets[idx];
-        var d_i = data[i].data;
-        for (var a in d_i) {
-            var sub_d = d_i[a];
-            var sub_b = bkt[a] || {};
-            for (var b in sub_d) {
-                sub_b[b] = (sub_b[b] || 0) + sub_d[b];
+    var buckets_per_column = buckets.length / columns.length;
+    for (var i = 0; i < buckets.length; i++) {
+        var idx = Math.floor(i / buckets_per_column);
+        var col = columns[idx];
+
+        for (var k in buckets[i].data) {
+            var one_k = buckets[i].data[k];
+            var col_k = columns[idx][k];
+            if (col_k === undefined) {
+              col_k = columns[idx][k] = { count:0, duration:0 };
             }
-            bkt[a] = sub_b;
+
+            col_k.count = (one_k.count || 0);
+            col_k.duration = (one_k.duration || 0);
         }
-        buckets[idx] = bkt;
     }
-    // concat sub-names.
-    buckets = buckets.map(function(each) {
+
+    // convert each column dict to an array sorted by count.
+    columns = columns.map(function(column) {
         var d = [];
-        for (var a in each) {
-            for (var b in each[a]) {
-                d.push([a+":"+b,each[a][b]])
-            }
+        for (var k in column) {
+          d.push([k,column[k].count,column[k].duration]);
         }
         return d.sort(function(a,b){return b[1]-a[1];}).join("<br/>");
     });
     for (var i = 0; i < 6; i++) {
-        document.getElementById("b"+i).innerHTML = buckets[i];
+        document.getElementById("b"+i).innerHTML = columns[i];
     }
-/*
-    for (var i = 0 ; i < data.length; i++) {
-        var bucket = data[i];
+
+    function dump_buckets(bs) {
+      for (var i = 0 ; i < bs.length; i++) {
+        var bucket = buckets[i];
         var date = new Date(bucket.ts);
 
         ticked.appendChild(document.createTextNode(date.toString() + ": " + JSON.stringify(bucket.data)));
         ticked.appendChild(document.createElement('hr'));
+      }
     }
-*/
-    // console.log(data);
+    function dump_array(as) {
+      ticked.appendChild(document.createElement('hr'));
+      ticked.appendChild(document.createTextNode(JSON.stringify(as)));
+    }
+    //dump_buckets(buckets);
+    //dump_array(counts);
+    //dump_array(durations);
+    // console.log(buckets);
   });
 </script>
 
