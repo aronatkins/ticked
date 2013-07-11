@@ -19,7 +19,7 @@ Getting Started
 
     Of course, you want this to be the version you use.
 
-        (cd ${HOME}/opt && ln -s node-${NODE_VERSION} node-update && mv -T node-update node)
+        (cd ${HOME}/opt && rm -f node && ln -s node-${NODE_VERSION} node)
 
 2. node path
 
