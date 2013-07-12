@@ -17,7 +17,7 @@
 </head>
 <body>
 <script>
-    var stack = d3.layout.stack().offset("silhouette"); // wiggle, zero
+    var stack = d3.layout.stack().offset("silhouette"); // wiggle, zero, silhouette
 
     var width = 960,
         height = 500;
@@ -57,6 +57,10 @@
     var firstTime = true;
     var socket = io.connect('/');
     socket.on('ticked', function (buckets) {
+    // the last bucket isn't final yet, so throw it away.
+    // maybe not a great choice when the bucket spans a long time.
+    buckets.pop();
+
         var cdns = {};
         for (var i = 0; i < buckets.length; i++) {
             for (var k in buckets[i].data) {

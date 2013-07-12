@@ -34,13 +34,6 @@
 
         var socket = io.connect('/');
         socket.on('ticked', function (buckets) {
-            d3.select("body").select("svg").remove();
-            var svg = d3.select("body").append("svg")
-                .attr("width", diameter)
-                .attr("height", diameter)
-              .append("g")
-                .attr("transform", "translate(2,2)");
-
             var children = {};
             for (var i = 0; i < buckets.length; i++) {
                 for (var k in buckets[i].data) {
@@ -61,11 +54,11 @@
                 for (grandkid in children[child]) {
                     c.children.push( { name: grandkid, size: children[child][grandkid]});
                 }
-                c.size = c.children.reduce(function(sum, a) { return sum + a; }, 0);
+                c.size = c.children.reduce(function(sum, g) { return sum + g; }, 0);
                 c.children.sort(function(a, b) {
                    return b - a;
                 });
-                c.children = c.children.slice(0, 10);
+                c.children = c.children.slice(0, 25);
                 tree.children.push(c);
             }
             tree.size = tree.children.reduce(function(sum, a) { return sum + a.size; }, 0);
@@ -74,6 +67,13 @@
               //return (a.name < b.name) ? -1 : 1;
             });
             tree.children = tree.children.slice(0, 10);
+
+            d3.select("body").selectAll("svg").remove();
+            var svg = d3.select("body").append("svg")
+                .attr("width", diameter)
+                .attr("height", diameter)
+              .append("g")
+                .attr("transform", "translate(2,2)");
 
             var node = svg.datum(tree).selectAll(".node")
                 .data(pack.nodes)

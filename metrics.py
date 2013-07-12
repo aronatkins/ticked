@@ -9,7 +9,9 @@ udp_port = 8025
 sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
 try :
     for line in sys.stdin.xreadlines() :
-        parts = line.split('|')
+        parts = line.rstrip().split('|')
+        if parts[1] == 'null' : continue
+        if parts[-1] != 'success' : continue
         ts = int(time.time() * 1000)
         cdn_id = parts[2]
         pub_id = parts[5]
