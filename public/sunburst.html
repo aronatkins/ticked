@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+<head>
+    <title>sunburst circle</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/d3.v3.min.js"></script>
+</head>
+<body>
+    <script>
+        var width = 960,
+            height = 600,
+            radius = Math.min(width, height) / 2 - 20;
+
+        var partition = d3.layout.partition()
+            .sort(null)
+            .size([2 * Math.PI, radius])
+            .value(function(d) { return d.size; });
+
+        var arc = d3.svg.arc()
+            .startAngle(function(d) { return d.x; })
+            .endAngle(function(d) { return d.x + d.dx; })
+            .innerRadius(function(d) { return d.y * 1; })
+            .outerRadius(function(d) { return d.y + d.dy; });
+
+            //partition.size([2 * Math.PI, radius]);
+            //arc.innerRadius(function(d) { return Math.sqrt(d.y) * .75; });
+            //arc.outerRadius(function(d) { return Math.sqrt(d.y + d.dy); });
+
+        var socket = io.connect('/');
+        socket.on('ticked', function (buckets) {
+
+            var children = {};
+            for (var i = 0; i < buckets.length; i++) {
+                for (var k in buckets[i].data) {
+                    var keys = k.split(',');
+                    var child = children[keys[0]];
+                    if (child === undefined) {
+                        child = children[keys[0]] = {};
+                    }
+                    child[keys[1]] = (child[keys[1]] || 0) + buckets[i].data[k].count;
+                }
+            }
+
+            var tree = {};
+            tree.name = 'benson';
+            tree.children = [];
+            for (child in children) {
+                var c = { name: child, children: [] };
+                for (grandkid in children[child]) {
+                    c.children.push( { name: grandkid, size: children[child][grandkid]});
+                }
+                c.size = c.children.reduce(function(sum, a) { return sum + a; }, 0);
+                c.children.sort(function(a, b) {
+                   return b - a;
+                });
+                //c.children = c.children.slice(0, 10);
+                tree.children.push(c);
+            }
+            tree.size = tree.children.reduce(function(sum, a) { return sum + a.size; }, 0);
+            tree.children.sort(function(a, b) {
+              return b.size - a.size;
+              //return (a.name < b.name) ? -1 : 1;
+            });
+            //tree.children = tree.children.slice(0, 10);
+
+            d3.select("body").select("svg").remove();
+            var svg = d3.select("body").append("svg")
+                .attr("width", width)
+                .attr("height", height)
+              .append("g")
+                .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+
+            var color = d3.scale.category20();
+
+            var path = svg.datum(tree).selectAll("path")
+                .data(partition.nodes)
+              .enter().append("path")
+                .attr("display", function(d) { return d.depth ? null : "none"; }) // hide inner ring
+                .attr("d", arc)
+                .style("stroke", "#fff")
+                .style("fill", function(d) { return color((d.children ? d : d.parent).name); })
+                .style("fill-rule", "evenodd");
+                ;
+        });
+
+        d3.select(self.frameElement).style("height", height + "px");
+    </script>
+</body>
+</html>

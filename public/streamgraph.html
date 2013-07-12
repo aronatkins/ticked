@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+    body {
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        margin: auto;
+        position: relative;
+        width: 960px;
+    }
+
+</style>
+<html>
+<head>
+    <title>Streamgraph</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/d3.v3.min.js"></script>
+</head>
+<body>
+<script>
+    var stack = d3.layout.stack().offset("silhouette"); // wiggle, zero
+
+    var width = 960,
+        height = 500;
+
+    var x = d3.scale.linear()
+//            .domain([0, m - 1])
+//            .domain([0, 59])
+            .range([0, width]);
+
+    var y = d3.scale.linear()
+//            .domain([0, d3.max(layers0.concat(layers1), function(layer) { return d3.max(layer, function(d) { return d.y0 + d.y; }); })])
+//            .domain([0, 1000000])
+            .range([0, height]);
+
+            var color = d3.scale.category20();
+//    var color = d3.scale.linear()
+//            .range([0, 255]);
+
+    var ymax = height;
+    var area = d3.svg.area()
+            .x(function(d) { return x(d.x); })
+            .y0(function(d) { return y(d.y0); })
+            .y1(function(d) { return y(d.y0 + d.y); });
+
+    var svg = d3.select("body").append("svg")
+            .attr("width", width)
+            .attr("height", height);
+ var borderPath = svg.append("rect")
+  .attr("x", 0)
+  .attr("y", 0)
+  .attr("height", height)
+  .attr("width", width)
+  .style("stroke", 'black')
+  .style("fill", "none")
+  .style("stroke-width", 1);
+
+    var firstTime = true;
+    var socket = io.connect('/');
+    socket.on('ticked', function (buckets) {
+        var cdns = {};
+        for (var i = 0; i < buckets.length; i++) {
+            for (var k in buckets[i].data) {
+                var keys = k.split(',');
+                if (cdns[keys[0]] === undefined) {
+                    cdns[keys[0]] = new Array(buckets.length);
+                    for (var j = 0; j < buckets.length; j++) { cdns[keys[0]][j] = 0; }
+                }
+                cdns[keys[0]][i] += buckets[i].data[k].count;
+            }
+        }
+        var cdnsa = [];
+        for (cdn in cdns) { cdnsa.push(cdns[cdn].map(function(d, i) { return { x: i, y: d, y0:0 }})); }
+        var layers = stack(cdnsa);
+
+        ymax = Math.max(ymax,d3.max(layers, function(layer) { return d3.max(layer, function(d) { return d.y0 + d.y; }); }))
+        x = x.domain([0, buckets.length - 1]);
+        y = y.domain([0, ymax]);
+        if (firstTime) {
+            svg.selectAll("path")
+                    .data(layers)
+                    .enter().append("path")
+                    .attr("d", area)
+                    .style("fill", function() { return color(Math.random()); });
+            firstTime = false;
+        }
+        else {
+        svg.selectAll("path")
+                .data(layers)
+                .transition()
+                .duration(100)
+                .attr("d", area);
+        }
+//        svg.selectAll("path").remove();
+//        svg.selectAll("path")
+//                .data(layers)
+//                .enter().append("path")
+//                .attr("d", area)
+//                .style("fill", function() { return color(Math.random()); });
+
+    });
+</script>
+
+</body>
+</html>

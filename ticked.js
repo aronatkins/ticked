@@ -74,7 +74,8 @@ function add_to_bucket(bucket, keys, values) {
         data = bucket.data[key] = {};
     }
 
-    data.count    = values.count + (data.count || 0);
+    data.count    = values.count + (data.count || 1);
+    data.bytes    = values.bytes + (data.bytes || 0);
     data.duration = values.duration + (data.duration || 0);
 }
 
@@ -93,7 +94,7 @@ function get_bucket(ts) {
     if (buckets.length == 0) {
 	   // no buckets. just create one and move on.
 	   bucket = create_bucket(ts);
-	   buckets[0] = bucket;
+	   buckets.push(bucket);
        return bucket;
     }
 
@@ -122,7 +123,6 @@ function get_bucket(ts) {
 	while (buckets[0].ts < min_ts) {
 	    buckets.shift();
 	}
-
     return bucket;
 }
 
@@ -134,7 +134,11 @@ function get_bucket_now() {
 
 function record(ts, keys, values) {
     var bucket = get_bucket(ts);
-    add_to_bucket(bucket, keys, values);
+    if (bucket != null) {
+        add_to_bucket(bucket, keys, values);
+    } else {
+        log.error('dropping record for ts: '+ts+' keys:['+keys+']');
+    }
 }
 
 // create the HTTP receiver.
@@ -144,9 +148,10 @@ var http_receiver = http.createServer(function (request, response) {
     var k1 = request_url.query.k1;
     var k2 = request_url.query.k2;
     var count = parseInt(request_url.query.c);
+    var bytes = parseInt(request_url.query.b);
     var duration = parseInt(request_url.query.d);
 
-    record(ts, [k1,k2], {count:count,duration:duration});
+    record(ts, [k1,k2], {count:count,bytes:bytes,duration:duration});
 
     response.writeHead(200, {'Content-Type': 'text/plain'});
     response.end('OK\n');
@@ -157,20 +162,28 @@ var udp_receiver = dgram.createSocket('udp4', function(msg,rinfo) {
     log.debug('received udp message:'+msg.toString());
 
     // format:
-    // ts:k1:k2:count:duration
-    // count and duration both default to 1 if not specified.
+    // ts:k1:k2:count:bytes:duration
+    // count defaults to 1; bytes and and duration both default to 0 if not specified.
     var parts = msg.toString().split(':');
 
-    if (parts.length >= 3 && parts.length <= 5) {
-        while (parts.length < 5) { parts.push(1); }
+    if (parts.length >= 3 && parts.length <= 6) {
+        if (parts.length < 4) { parts.push(1); }
+        while (parts.length < 6) { parts.push(0); }
+
         var ts = Number(parts.shift());
         var k1 = parts.shift();
         var k2 = parts.shift();
 
         var count = parseInt(parts.shift());
+        var bytes = parseInt(parts.shift());
         var duration = parseInt(parts.shift());
 
-        record(ts, [k1,k2], {count:count,duration:duration});
+        try {
+            record(ts, [k1,k2], {count:count,bytes:bytes,duration:duration});
+        } catch (err) {
+            log.error("could not record:"+msg.toString());
+            throw err;
+        }
     } else {
         log.error("bad udp message:"+msg);
     }

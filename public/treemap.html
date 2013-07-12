@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  margin: auto;
+  position: relative;
+  width: 960px;
+}
+
+form {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+}
+
+.node {
+  border: solid 1px white;
+  font: 10px sans-serif;
+  line-height: 12px;
+  overflow: hidden;
+  position: absolute;
+  text-indent: 2px;
+}
+</style>
+<html>
+<head>
+    <title>treemap</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/d3.v3.min.js"></script>
+</head>
+<body>
+    <script>
+var margin = {top: 40, right: 10, bottom: 10, left: 10},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+var treemap = d3.layout.treemap()
+    .size([width, height])
+    //.sticky(true) // layout is cached. we need to merge nodes!?
+    .value(function(d) { return d.size; });
+
+        var socket = io.connect('/');
+        socket.on('ticked', function (buckets) {
+
+            var children = {};
+            for (var i = 0; i < buckets.length; i++) {
+                for (var k in buckets[i].data) {
+                    var keys = k.split(',');
+                    var child = children[keys[0]];
+                    if (child === undefined) {
+                        child = children[keys[0]] = {};
+                    }
+                    child[keys[1]] = (child[keys[1]] || 0) + buckets[i].data[k].count;
+                }
+            }
+
+            var tree = {};
+            tree.name = 'benson';
+            tree.children = [];
+            for (child in children) {
+                var c = { name: child, children: [] };
+                for (grandkid in children[child]) {
+                    c.children.push( { name: child+":"+grandkid, size: children[child][grandkid]});
+                }
+                c.size = c.children.reduce(function(sum, a) { return sum + a; }, 0);
+                c.children.sort(function(a, b) {
+                   return b - a;
+                });
+                c.children = c.children.slice(0, 10);
+                tree.children.push(c);
+            }
+            tree.size = tree.children.reduce(function(sum, a) { return sum + a.size; }, 0);
+            tree.children.sort(function(a, b) {
+              return b.size - a.size;
+              //return (a.name < b.name) ? -1 : 1;
+            });
+            //tree.children = tree.children.slice(0, 10);
+
+//            d3.select("body").select("div").remove();
+
+            var color = d3.scale.category20();
+
+d3.select("body").select("div").remove();
+var div = d3.select("body").append("div")
+    .style("position", "relative")
+    .style("width", (width + margin.left + margin.right) + "px")
+    .style("height", (height + margin.top + margin.bottom) + "px")
+    .style("left", margin.left + "px")
+    .style("top", margin.top + "px");
+
+
+  var node = div.datum(tree).selectAll(".node")
+      .data(treemap.nodes)
+    .enter().append("div")
+      .attr("class", "node")
+      .call(position)
+      .style("background", function(d) { return d.children ? color(d.name) : null; })
+      .text(function(d) { return d.children ? null : d.name; });
+        });
+
+function position() {
+  this.style("left", function(d) { return d.x + "px"; })
+      .style("top", function(d) { return d.y + "px"; })
+      .style("width", function(d) { return Math.max(0, d.dx - 1) + "px"; })
+      .style("height", function(d) { return Math.max(0, d.dy - 1) + "px"; });
+}
+    </script>
+</body>
+</html>
