@@ -66,7 +66,7 @@
               return b.size - a.size;
               //return a.name - b.name;
             });
-            tree.children = tree.children.slice(0, 25);
+            tree.children = tree.children.slice(0, 10);
 
             d3.select("body").selectAll("svg").remove();
             var svg = d3.select("body").append("svg")
