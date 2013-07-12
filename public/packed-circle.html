@@ -87,7 +87,9 @@
             node.append("circle")
                 .attr("r", function(d) { return d.r; });
 
-            node.filter(function(d) { return !d.children; }).append("text")
+            node.filter(function(d) { return !d.children; })
+                .on("click", function(d) { window.open("http://bravoapp05.qanet.local:18080/services/internal/mvc/account/search?term=" + d.name); })
+                .append("text")
                 .attr("dy", ".3em")
                 .style("text-anchor", "middle")
                 .text(function(d) { return d.name.substring(0, d.r / 3); });
