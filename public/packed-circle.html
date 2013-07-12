@@ -58,15 +58,15 @@
                 c.children.sort(function(a, b) {
                    return b - a;
                 });
-                c.children = c.children.slice(0, 25);
+                c.children = c.children.slice(0, 10);
                 tree.children.push(c);
             }
             tree.size = tree.children.reduce(function(sum, a) { return sum + a.size; }, 0);
             tree.children.sort(function(a, b) {
               return b.size - a.size;
-              //return (a.name < b.name) ? -1 : 1;
+              //return a.name - b.name;
             });
-            tree.children = tree.children.slice(0, 10);
+            tree.children = tree.children.slice(0, 25);
 
             d3.select("body").selectAll("svg").remove();
             var svg = d3.select("body").append("svg")

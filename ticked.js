@@ -137,7 +137,7 @@ function record(ts, keys, values) {
     if (bucket != null) {
         add_to_bucket(bucket, keys, values);
     } else {
-        log.error('dropping record for ts: '+ts+' keys:['+keys+']');
+        log.error('dropping record for ts: '+ts+' which was '+(date.getTime()-ts)+' ago keys:['+keys+']');
     }
 }
 

@@ -13,7 +13,7 @@
             radius = Math.min(width, height) / 2 - 20;
 
         var partition = d3.layout.partition()
-            .sort(null)
+            .sort(function(a,b) { return b.size - a.size; })
             .size([2 * Math.PI, radius])
             .value(function(d) { return d.size; });
 

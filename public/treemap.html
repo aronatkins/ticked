@@ -36,6 +36,7 @@ var margin = {top: 40, right: 10, bottom: 10, left: 10},
     height = 500 - margin.top - margin.bottom;
 
 var treemap = d3.layout.treemap()
+//            .sort(function(a,b) { return b.size - a.size; })
     .size([width, height])
     //.sticky(true) // layout is cached. we need to merge nodes!?
     .value(function(d) { return d.size; });
@@ -67,7 +68,7 @@ var treemap = d3.layout.treemap()
                 c.children.sort(function(a, b) {
                    return b - a;
                 });
-                c.children = c.children.slice(0, 10);
+                //c.children = c.children.slice(0, 10);
                 tree.children.push(c);
             }
             tree.size = tree.children.reduce(function(sum, a) { return sum + a.size; }, 0);
