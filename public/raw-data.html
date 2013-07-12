@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+  "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+
+<head>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/jquery-1.10.2.min.js"></script>
+  <script src="/raphael-2.1.0.min.js"></script>
+  <title>ticked</title>
+  <style>
+    #buckets div { width: 150px; float: left; }
+  </style>
+</head>
+<body>
+
+<div id="ticked">
+</div>
+
+<script>
+  var w = $(window).width() - 18; // why 18?;
+  var h = 100;
+  var animate = false;
+  var animate_bg = true;
+  var animate_ms = 500;
+  var animate_easing = '>'; // "ease-in";//"<>";
+  var line_fn = "R"; // L, R, etc.
+  var trippy_colors = false;
+
+  var ticked = document.getElementById('ticked');
+  var socket = io.connect('/');
+
+  socket.on('ticked', function (buckets) {
+    // the last bucket isn't final yet, so throw it away.
+    // maybe not a great choice when the bucket spans a long time.
+    buckets.pop();
+
+    ticked.innerHTML = "<pre>" + JSON.stringify(buckets, undefined, 4) + "</pre>";
+  });
+</script>
+
+</body>
