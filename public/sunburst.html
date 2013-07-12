@@ -38,7 +38,7 @@
                     if (child === undefined) {
                         child = children[keys[0]] = {};
                     }
-                    child[keys[1]] = (child[keys[1]] || 0) + buckets[i].data[k].count;
+                    child[keys[1]] = (child[keys[1]] || 0) + buckets[i].data[k].bytes;
                 }
             }
 

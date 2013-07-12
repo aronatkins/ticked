@@ -14,6 +14,7 @@
 <body>
 
 <div id="counts_graph" style="border:1px solid black;"></div>
+<div id="bytes_graph" style="border:1px solid black;"></div>
 <div id="durations_graph" style="border:1px solid black;"></div>
 <div id="rate_graph" style="border:1px solid black;"></div>
 
@@ -103,6 +104,7 @@
   return render;
 }
   var render_counts_graph = Graph('counts_graph', w, h);
+  var render_bytes_graph = Graph('bytes_graph', w, h);
   var render_durations_graph = Graph('durations_graph', w, h);
   var render_rate_graph = Graph('rate_graph', w, h);
 
@@ -115,10 +117,11 @@
     // single bucket.
     var aggregated = [];
     for (var i = 0; i < buckets.length; i++) {
-        var one_ts = { count:0, duration:0 };
+        var one_ts = { count:0, bytes:0, duration:0 };
         for (var k in buckets[i].data) {
             var one_k = buckets[i].data[k];
             one_ts.count += (one_k.count || 0);
+            one_ts.bytes += (one_k.bytes || 0);
             one_ts.duration += (one_k.duration || 0);
         }
         aggregated.push(one_ts);
@@ -131,11 +134,13 @@ function zip(arrays) {
 }
 
     var counts = aggregated.map(function(d) { return d.count; });
+    var bytes = aggregated.map(function(d) { return d.bytes; });
     var durations = aggregated.map(function(d) { return d.duration; });
-    var zipped = zip([counts, durations]);
-    var rates = zipped.map(function(d) { return d[0] / d[1]; });
+    var zipped = zip([bytes, durations]);
+    var rates = zipped.map(function(d) { return d[1] > 0 ? d[0] / d[1] : 0; });
 
     render_counts_graph(counts);
+    render_bytes_graph(bytes);
     render_durations_graph(durations);
     render_rate_graph(rates);
 
@@ -153,10 +158,11 @@ function zip(arrays) {
             var one_k = buckets[i].data[k];
             var col_k = columns[idx][k];
             if (col_k === undefined) {
-              col_k = columns[idx][k] = { count:0, duration:0 };
+              col_k = columns[idx][k] = { count:0, bytes:0, duration:0 };
             }
 
             col_k.count = (one_k.count || 0);
+            col_k.bytes = (one_k.bytes || 0);
             col_k.duration = (one_k.duration || 0);
         }
     }
@@ -165,9 +171,9 @@ function zip(arrays) {
     columns = columns.map(function(column) {
         var d = [];
         for (var k in column) {
-          d.push([k,column[k].count,column[k].duration]);
+          d.push([k,column[k].count,column[k].bytes,column[k].duration]);
         }
-        return d.sort(function(a,b){return b[1]-a[1];});
+        return d.sort(function(a,b){return b[2]-a[2];});
     });
     function dump_columns(columns) {
     for (var i = 0; i < 6; i++) {

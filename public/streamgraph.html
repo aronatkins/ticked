@@ -65,7 +65,7 @@
                     cdns[keys[0]] = new Array(buckets.length);
                     for (var j = 0; j < buckets.length; j++) { cdns[keys[0]][j] = 0; }
                 }
-                cdns[keys[0]][i] += buckets[i].data[k].count;
+                cdns[keys[0]][i] += buckets[i].data[k].bytes;
             }
         }
         var cdnsa = [];
