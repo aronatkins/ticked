@@ -8,7 +8,7 @@ Getting Started
 
 1. grab node. <http://nodejs.org/>
 
-        NODE_VERSION=v0.10.12
+        NODE_VERSION=v0.10.29
         curl -O http://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}.tar.gz
         tar zxvf node-${NODE_VERSION}.tar.gz
         cd node-${NODE_VERSION}

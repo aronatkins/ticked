@@ -51,7 +51,7 @@ function logger() {
     log.info = function(message) { log.log('info',message); };
     log.debug = function(message) { log.log('debug',message); };
     log.trace = function(message) { log.log('trace',message); };
-    return log;    
+    return log;
 }
 
 var log = logger();
@@ -80,7 +80,7 @@ function add_to_bucket(bucket, keys, values) {
 }
 
 function norm_ts(ts) {
-    // ms since epoch w 60s step.    
+    // ms since epoch w 60s step.
     var bucket_ts = Math.floor(ts / config.bucket_interval) * config.bucket_interval;
 
     log.trace("ts:"+ts+":"+bucket_ts);
@@ -197,9 +197,9 @@ var server = http.createServer(function (request, response) {
     }).resume();
 });
 
-http_receiver.listen(config.receiver_http_port || 8020, 
+http_receiver.listen(config.receiver_http_port || 8020,
 		     config.receiver_http_address || undefined);
-udp_receiver.bind(config.receiver_udp_port || 8025, 
+udp_receiver.bind(config.receiver_udp_port || 8025,
 		  config.receiver_udp_address || undefined);
 server.listen(config.server_http_port || 8080,
 	      config.server_http_address || undefined);
@@ -215,7 +215,7 @@ var push_interval = setInterval(function () {
     // fetching the historical data at first load.
 
     // tbd: have different top-level events.
-    io.sockets.volatile.emit("ticked", buckets);
+    io.sockets.emit("ticked", buckets);
 }, config.push_interval || 10000);
 
 // make sure we have buckets even if there's no data arriving.
